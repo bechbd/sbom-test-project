@@ -52,14 +52,16 @@ class SBOMExtractor(Extractor):
         """
         logging.info("Writing bom metadata")
         document = self.__write_bom(bom)
+
         if "components" in bom:
             document = self.__write_components(bom["components"], document)
-            """
+
         if "dependencies" in bom:
             self.__write_dependencies(bom["dependencies"])
+
         if "vulnerabilities" in bom:
             self.__write_vulnerabilities(bom["vulnerabilities"])
-            """
+
         self.elements.append(document)
 
     def __write_bom(self, bom):
@@ -82,6 +84,13 @@ class SBOMExtractor(Extractor):
             "__document_id": document_id,
         }
 
+        if "components" in document:
+            del document["components"]
+        if "dependencies" in document:
+            del document["dependencies"]
+        if "vulnerabilities" in document:
+            del document["vulnerabilities"]
+
         # Do mappings from Cyclone DX to more generic name
         # document["spec_version"] = document.pop("specVersion")
         # document["created_timestamp"] = document.pop("timestamp")
@@ -96,16 +105,22 @@ class SBOMExtractor(Extractor):
             document (dict): The document to link the components to
         """
         for c in components:
-            component = {
-                **c,
-                "__type": NodeLabels.COMPONENT.value,
-                "__component_id": f"{NodeLabels.COMPONENT.value}_{c['name']}",
-            }
+            if "bom-ref" in c:
+                component = {
+                    **c,
+                    "__type": NodeLabels.COMPONENT.value,
+                    "__component_id": f"{NodeLabels.COMPONENT.value}_{c['bom-ref']}",
+                }
+            else:
+                self.logger.error(f"Component {c['name']} does not contain a bom-ref")
+                raise AttributeError(
+                    f"Component {c['name']} does not contain a bom-ref"
+                )
             document["describes"] = []
             document["describes"].extend(
                 [
                     {
-                        "__toId": f"{NodeLabels.COMPONENT.value}_{c['name']}",
+                        "__toId": f"{NodeLabels.COMPONENT.value}_{c['bom-ref']}",
                     }
                     for c in components
                 ]
@@ -141,21 +156,48 @@ class SBOMExtractor(Extractor):
         Args:
             dependencies (list): The dependencies to write
         """
-        deps = []
-        depends_on_edges = []
         for d in dependencies:
             if "dependsOn" in d:
-                deps.extend([{"ref": dep} for dep in d["dependsOn"]])
-                depends_on_edges.extend(
+                dependency = {
+                    **d,
+                    "__type": NodeLabels.COMPONENT.value,
+                    "__component_id": f"{NodeLabels.COMPONENT.value}_{d['ref']}",
+                }
+                dependency["dependsOn"] = []
+                dependency["dependsOn"].extend(
                     [
                         {
-                            "to": dep,
-                            "from": d["ref"],
+                            "__toId": f"{NodeLabels.COMPONENT.value}_{dep}",
                         }
                         for dep in d["dependsOn"]
                     ]
                 )
 
-        self.write_rel_match_on_property(
-            depends_on_edges, EdgeLabels.DEPENDS_ON.value, "purl", "purl"
-        )
+                self.elements.append(dependency)
+
+    def __write_vulnerabilities(self, vulnerabilities: list):
+        """Writes the vulnerabilities to the graph
+
+        Args:
+            vulnerabilities (list): The vulnerabilities to write
+        """
+        for v in vulnerabilities:
+            vul = {
+                **v,
+                "__type": NodeLabels.VULNERABILITY.value,
+                "__vulnerability_id": f"{NodeLabels.VULNERABILITY.value}_{v['id']}",
+            }
+            if "ratings" in v and len(v["ratings"]) > 0:
+                vul.append(v["ratings"][0])
+
+            if "affects" in v:
+                vul["affects"] = []
+                vul["affects"].extend(
+                    [
+                        {
+                            "__toId": f"{NodeLabels.COMPONENT.value}_{a['ref']}",
+                        }
+                        for a in v["affects"]
+                    ]
+                )
+            self.elements.append(vul)

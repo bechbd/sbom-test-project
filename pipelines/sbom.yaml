@@ -1,6 +1,6 @@
 - implementation: sbom:SBOMExtractor
   arguments:
-    file_path: data/CDX/drop-wizard-bom.json
+    file_path: data/CDX/i-0dfd4132c0dd31532_CYCLONEDX_1_4.json
 
 - implementation: nodestream.interpreting:Interpreter
   arguments:
@@ -33,6 +33,13 @@
           id: !jmespath references[*].__toId
         find_many: true
 
+      - type: relationship
+        node_type: Component
+        relationship_type: DEPENDS_ON
+        node_key:
+          id: !jmespath dependsOn[*].__toId
+        find_many: true
+
     - - type: source_node
         node_type: Reference
         key:
@@ -41,3 +48,15 @@
           url: !jmespath url
           type: !jmespath type
 
+    - - type: source_node
+        node_type: Vulnerability
+        key:
+          id: !jmespath __vulnerability_id
+        properties:
+          vulnerability_id: !jmespath id
+      - type: relationship
+        node_type: Component
+        relationship_type: AFFECTS
+        node_key:
+          id: !jmespath affects[*].__toId
+        find_many: true

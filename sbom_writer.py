@@ -339,8 +339,9 @@ class CycloneDXWriter(Writer):
             self.__write_components(bom["components"], document_id)
         if "dependencies" in bom:
             self.__write_dependencies(bom["dependencies"])
-        if "vulnerabilities" in bom:
+        """if "vulnerabilities" in bom:
             self.__write_vulnerabilities(bom["vulnerabilities"])
+        """
         return True
 
     def __write_bom(self, bom):
