@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "sbom-project"
+version = "0.1.0"
+description = "A new ingestion project using nodestream"
+readme = "README.md"
+authors = ["Your Name <your_name@your_domain.com>"] 
+
+[tool.poetry.dependencies]
+python = "^3.10"
+nodestream = "^0.11.8"
+pytest = "^8.0.1"
+
+[tool.poetry.plugins."nodestream.plugins"]
+"argument_resolvers" = "sbom-project.argument_resolvers"
+"interpretations" = "sbom-project.interpretations"
+"normalizers" = "sbom-project.normalizers"
+"value_providers" = "sbom-project.value_providers"

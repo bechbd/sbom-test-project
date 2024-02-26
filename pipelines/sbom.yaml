@@ -1,0 +1,43 @@
+- implementation: sbom:SBOMExtractor
+  arguments:
+    file_path: data/CDX/drop-wizard-bom.json
+
+- implementation: nodestream.interpreting:Interpreter
+  arguments:
+    interpretations:
+    - - type: source_node
+        node_type: Document
+        key:
+          id: !jmespath __document_id
+        properties:
+          specVersion: !jmespath spec_version
+          serialNumber: !jmespath serialNumber
+
+      - type: relationship
+        node_type: Component
+        relationship_type: DESCRIBES
+        node_key:
+          id: !jmespath describes[*].__toId
+        find_many: true
+
+    - - type: source_node
+        node_type: Component
+        key:
+          id: !jmespath __component_id
+        properties:
+          name: !jmespath name
+      - type: relationship
+        node_type: Reference
+        relationship_type: REFERS_TO
+        node_key:
+          id: !jmespath references[*].__toId
+        find_many: true
+
+    - - type: source_node
+        node_type: Reference
+        key:
+          id: !jmespath __reference_id
+        properties:
+          url: !jmespath url
+          type: !jmespath type
+
