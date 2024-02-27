@@ -1,7 +1,5 @@
 import uuid
-from typing import Any, AsyncGenerator, Iterable
-from enum import Enum
-import logging
+from typing import Iterable
 from .sbom_writer import SBOMWriter
 
 

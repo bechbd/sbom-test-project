@@ -29,6 +29,13 @@ class SBOMExtractor(Extractor):
                         # self.logger.info(e)
                         # print(json.dumps(e, indent=2))
                         yield e
+                elif "SPDXID" in record:
+                    writer = SPDXWriter(record)
+                    elements = writer.write_document()
+                    for e in elements:
+                        # self.logger.info(e)
+                        # print(json.dumps(e, indent=2))
+                        yield e
                 else:
                     self.logger.info(
                         f"The file at path {path} is not a valid CycloneDX SBOM"

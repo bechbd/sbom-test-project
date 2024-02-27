@@ -12,12 +12,35 @@
         properties:
           specVersion: !jmespath spec_version
           serialNumber: !jmespath serialNumber
-
       - type: relationship
         node_type: Component
         relationship_type: DESCRIBES
         node_key:
           id: !jmespath describes[*].__toId
+        find_many: true
+      - type: relationship
+        node_type: Component
+        relationship_type: DEPENDS_ON
+        node_key:
+          id: !jmespath depends_on[*].__toId
+        find_many: true
+      - type: relationship
+        node_type: Component
+        relationship_type: DEPENDENCY_OF
+        node_key:
+          id: !jmespath dependency_of[*].__toId
+        find_many: true
+      - type: relationship
+        node_type: Component
+        relationship_type: DESCRIBED_BY
+        node_key:
+          id: !jmespath described_by[*].__toId
+        find_many: true
+      - type: relationship
+        node_type: Component
+        relationship_type: CONTAINS
+        node_key:
+          id: !jmespath contains[*].__toId
         find_many: true
 
     - - type: source_node
