@@ -26,20 +26,27 @@ class EdgeLabels(Enum):
 
 
 class SBOMExtractor(Extractor):
-    def __init__(self, file_path):
-        self.file_path = file_path
+    def __init__(self, paths: Iterable[Path]) -> None:
+        self.paths = sorted(Path(paths).rglob("*.json"))
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def extract_records(self):
-        with open(self.file_path, "r") as f:
-            self.elements = []
-            str = f.read()
-            record = json.loads(str)
-            self.write_document(record)
-            for e in self.elements:
-                # self.logger.info(e)
-                print(json.dumps(e, indent=2))
-                yield e
+        for path in self.paths:
+            with open(path, "r") as f:
+                self.elements = []
+                str = f.read()
+                record = json.loads(str)
+                if "bomFormat" in record and record["bomFormat"] == "CycloneDX":
+                    self.write_document(record)
+                    for e in self.elements:
+                        # self.logger.info(e)
+                        # print(json.dumps(e, indent=2))
+                        yield e
+                else:
+                    self.logger.info(
+                        f"The file at path {path} is not a valid CycloneDX SBOM"
+                    )
+                    print(f"The file at path {path} is not a valid CycloneDX SBOM")
 
     def write_document(self, bom: dict):
         """Writes the CycloneDX document

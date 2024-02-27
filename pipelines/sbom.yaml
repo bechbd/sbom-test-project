@@ -1,6 +1,6 @@
 - implementation: sbom:SBOMExtractor
   arguments:
-    file_path: data/CDX/i-0dfd4132c0dd31532_CYCLONEDX_1_4.json
+    paths: data/
 
 - implementation: nodestream.interpreting:Interpreter
   arguments:
