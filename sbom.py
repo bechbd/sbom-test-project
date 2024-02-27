@@ -27,7 +27,11 @@ class EdgeLabels(Enum):
 
 class SBOMExtractor(Extractor):
     def __init__(self, paths: Iterable[Path]) -> None:
-        self.paths = sorted(Path(paths).rglob("*.json"))
+        p = Path(paths)
+        if p.is_dir():
+            self.paths = sorted(Path(paths).rglob("*.json"))
+        elif p.is_file():
+            self.paths = [p]
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def extract_records(self):
