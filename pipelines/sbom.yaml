@@ -42,6 +42,12 @@
         node_key:
           id: !jmespath contains[*].__toId
         find_many: true
+      - type: relationship
+        node_type: Component
+        relationship_type: DESCRIBES
+        node_key:
+          id: !jmespath documentDescribes[*]
+        find_many: true
 
     - - type: source_node
         node_type: Component

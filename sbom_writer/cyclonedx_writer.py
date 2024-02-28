@@ -56,8 +56,8 @@ class CycloneDXWriter(SBOMWriter):
             del document["vulnerabilities"]
 
         # Do mappings from Cyclone DX to more generic name
-        # document["spec_version"] = document.pop("specVersion")
-        # document["created_timestamp"] = document.pop("timestamp")
+        if "metadata" in document and "timestamp" in document["metadata"]:
+            document["created_timestamp"] = document["metadata"]["timestamp"]
 
         return document
 

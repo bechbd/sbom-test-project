@@ -53,7 +53,7 @@ class SPDXWriter(SBOMWriter):
         document["describes"].extend(
             [
                 {
-                    "__toId": f"{self.NodeLabels.COMPONENT.value}_{r['name']}",
+                    "__toId": f"{self.NodeLabels.COMPONENT.value}_{r['SPDXID']}",
                 }
                 for r in bom["packages"]
             ]
@@ -62,7 +62,7 @@ class SPDXWriter(SBOMWriter):
         return document
 
     def __write_packages(self, packages: list):
-        """Writes the pacakges of the BOM to the graph
+        """Writes the packages of the BOM to the graph
 
         Args:
             packages (list): The packages to write
@@ -109,11 +109,23 @@ class SPDXWriter(SBOMWriter):
         document["dependency_of"] = []
         document["described_by"] = []
         document["contains"] = []
+
+        # Add primary component link to the document
+        if "documentDescribes" in document:
+            document["describes"].extend(
+                [
+                    {
+                        "__toId": f"{self.NodeLabels.COMPONENT.value}_{d}",
+                    }
+                    for d in document["documentDescribes"]
+                ]
+            )
+
         for d in relationships:
             if d["relationshipType"] == "DESCRIBES":
                 document["describes"].append(
                     {
-                        "__toId": f"{self.NodeLabels.REFERENCE.value}_{d['relatedSpdxElement']}",
+                        "__toId": f"{self.NodeLabels.COMPONENT.value}_{d['relatedSpdxElement']}",
                     }
                 )
             elif d["relationshipType"] == "DEPENDS_ON":
