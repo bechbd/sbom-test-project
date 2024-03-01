@@ -1,6 +1,16 @@
-- implementation: sbom:SBOMExtractor
+# - implementation: sbom:SBOMExtractor
+#   arguments:
+#     paths: data/
+
+# - implementation: github_sbom:GithubSBOMExtractor
+#   arguments:
+#     repos: [nodestream-proj/nodestream, bechbd/sbom-test-project]
+
+- implementation: amazon_inspector_sbom:AmazonInspectorSBOMExtractor
   arguments:
-    paths: data/
+    bucketName: <>
+    keyPrefix: <>
+    kmsKeyArn: <>
 
 - implementation: nodestream.interpreting:Interpreter
   arguments:
