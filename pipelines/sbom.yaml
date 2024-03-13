@@ -1,6 +1,6 @@
 - implementation: sbom:SBOMExtractor
   arguments:
-    paths: data/CDX/
+    paths: data/CDX/i-0dfd4132c0dd31532_CYCLONEDX_1_4.json
 
 # - implementation: github_sbom:GithubSBOMExtractor
 #   arguments:
@@ -91,3 +91,17 @@
         node_key:
           id: !jmespath affects[*].__toId
         find_many: true
+
+    - - type: source_node
+        node_type: License
+        key:
+          id: !jmespath __license_id
+        properties: !jmespath attributes
+      - type: relationship
+        node_type: Component
+        relationship_type: LICENSED_BY
+        node_key:
+          id: !jmespath licensed_by[*].__toId
+        find_many: true
+        outbound: false
+

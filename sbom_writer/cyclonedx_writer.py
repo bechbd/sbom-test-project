@@ -28,6 +28,10 @@ class CycloneDXWriter(SBOMWriter):
         self.elements.append(document)
         return self.elements
 
+    def __remove_attributes_key(self, document: dict, key: str):
+        if key in document["attributes"]:
+            del document["attributes"][key]
+
     def __write_bom(self, bom):
         """Writes the BOM metadata
 
@@ -42,24 +46,71 @@ class CycloneDXWriter(SBOMWriter):
         else:
             document_id = f"{self.NodeLabels.DOCUMENT.value}_{uuid.uuid4()}"
 
+        if "metadata" in bom and "component":
+            attr = {**bom, **bom["metadata"]}
+            del attr["metadata"]
+        else:
+            attr = {**bom}
+
         document = {
-            "attributes": {**bom},
+            "attributes": attr,
             "__type": self.NodeLabels.DOCUMENT.value,
             "__document_id": document_id,
         }
 
-        if "components" in document["attributes"]:
-            del document["attributes"]["components"]
-        if "dependencies" in document["attributes"]:
-            del document["attributes"]["dependencies"]
-        if "vulnerabilities" in document["attributes"]:
-            del document["attributes"]["vulnerabilities"]
+        if "component" in document["attributes"]:
+            document = self.__write_components(
+                [document["attributes"]["component"]], document
+            )
+
+        self.__remove_attributes_key(document, "component")
+        self.__remove_attributes_key(document, "components")
+        self.__remove_attributes_key(document, "dependencies")
+        self.__remove_attributes_key(document, "vulnerabilities")
 
         # Do mappings from Cyclone DX to more generic name
         if "metadata" in document and "timestamp" in document["metadata"]:
             document["created_timestamp"] = document["metadata"]["timestamp"]
 
         return document
+
+    def __write_license(self, licenses: list, toId: str):
+        """Writes the components of the BOM to the graph
+
+        Args:
+            components (list): The components to write
+            document (dict): The document to link the components to
+        """
+        try:
+            for lic in licenses:
+                if "license" in lic:
+                    if "id" in lic["license"]:
+                        license = {
+                            "attributes": {**lic["license"]},
+                            "__type": self.NodeLabels.LICENSE.value,
+                            "__license_id": f"{self.NodeLabels.LICENSE.value}_{str(lic['license']['id']).lower()}",
+                        }
+                        license["attributes"]["name"] = license["attributes"].pop("id")
+                    elif "name" in lic["license"]:
+                        license = {
+                            "attributes": {**lic["license"]},
+                            "__type": self.NodeLabels.LICENSE.value,
+                            "__license_id": f"{self.NodeLabels.LICENSE.value}_{str(lic['license']['name']).lower()}",
+                        }
+                    else:
+                        self.logger.info(
+                            f"Skipping License nodes due to no id or name for {lic}"
+                        )
+                    license["licensed_by"] = [
+                        {
+                            "__toId": toId,
+                        }
+                    ]
+                    self.elements.append(license)
+                else:
+                    self.logger.info("Skipping License nodes due to no 'license' field")
+        except Exception as e:
+            self.logger.error("Error extracting License nodes", e)
 
     def __write_components(self, components: list, document: dict):
         """Writes the components of the BOM to the graph
@@ -89,11 +140,16 @@ class CycloneDXWriter(SBOMWriter):
                     for c in components
                 ]
             )
+
+            if "licenses" in c:
+                self.__write_license(c["licenses"], component["__component_id"])
+                del c["licenses"]
+
             if "externalReferences" in c:
                 self.elements.extend(
                     [
                         {
-                            "attributes": {**c},
+                            "attributes": {**r},
                             "__type": self.NodeLabels.REFERENCE.value,
                             "__reference_id": f"{self.NodeLabels.REFERENCE.value}_{r['url']}",
                         }
@@ -110,8 +166,13 @@ class CycloneDXWriter(SBOMWriter):
                     ]
                 )
 
-            if "dependsOn" in component["attributes"]:
-                del component["attributes"]["dependsOn"]
+            if "externalReferences" in component["attributes"]:
+                del component["attributes"]["externalReferences"]
+
+            self.__remove_attributes_key(component, "externalReferences")
+            self.__remove_attributes_key(component, "licenses")
+            self.__remove_attributes_key(component, "dependsOn")
+
             self.elements.append(component)
 
         return document

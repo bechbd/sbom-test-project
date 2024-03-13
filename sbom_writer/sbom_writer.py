@@ -9,6 +9,7 @@ class SBOMWriter(ABC):
         COMPONENT = "Component"
         VULNERABILITY = "Vulnerability"
         REFERENCE = "Reference"
+        LICENSE = "License"
 
     class EdgeLabels(Enum):
         DESCRIBES = "DESCRIBES"
@@ -18,6 +19,7 @@ class SBOMWriter(ABC):
         DESCRIBED_BY = "DESCRIBED_BY"
         CONTAINS = "CONTAINS"
         AFFECTS = "AFFECTS"
+        LICENSED_BY = "LICENSED_BY"
 
     def __init__(self, bom: dict) -> None:
         self.bom = bom
