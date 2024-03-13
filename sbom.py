@@ -48,11 +48,17 @@ class SBOMExtractor(Extractor):
                         f"The file at path {path} is not a valid CycloneDX SBOM"
                     )
                     print(f"The file at path {path} is not a valid CycloneDX SBOM")
-
-            for e in elements:
-                self.logger.debug(e)
-                if "attributes" in e:
-                    e["attributes"] = self.__clean_dict(e["attributes"])
-                # if e["__type"] == "License":
-                #     print(e)
-                yield e
+            try:
+                for e in elements:
+                    if e is not None:
+                        self.logger.debug(e)
+                        if "attributes" in e:
+                            e["attributes"] = self.__clean_dict(e["attributes"])
+                        # if e["__type"] == "Document":
+                        #     print(e)
+                        yield e
+                    else:
+                        print(e)
+            except Exception as e:
+                self.logger.error(e)
+                pass

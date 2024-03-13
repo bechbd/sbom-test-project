@@ -13,20 +13,23 @@ class CycloneDXWriter(SBOMWriter):
         Returns:
             bool: True if successful, False if not
         """
-        self.logger.info("Writing bom metadata")
-        document = self.__write_bom(self.bom)
+        try:
+            self.logger.info("Writing bom metadata")
+            self.__write_bom(self.bom)
 
-        if "components" in self.bom:
-            document = self.__write_components(self.bom["components"], document)
+            if "components" in self.bom:
+                self.__write_components(self.bom["components"])
 
-        if "dependencies" in self.bom:
-            self.__write_dependencies(self.bom["dependencies"])
+            if "dependencies" in self.bom:
+                self.__write_dependencies(self.bom["dependencies"])
 
-        if "vulnerabilities" in self.bom:
-            self.__write_vulnerabilities(self.bom["vulnerabilities"])
+            if "vulnerabilities" in self.bom:
+                self.__write_vulnerabilities(self.bom["vulnerabilities"])
 
-        self.elements.append(document)
-        return self.elements
+            return self.elements
+        except Exception as e:
+            self.logger.error(e)
+            raise e
 
     def __remove_attributes_key(self, document: dict, key: str):
         if key in document["attributes"]:
@@ -59,8 +62,14 @@ class CycloneDXWriter(SBOMWriter):
         }
 
         if "component" in document["attributes"]:
-            document = self.__write_components(
-                [document["attributes"]["component"]], document
+            self.__write_components([document["attributes"]["component"]])
+
+        document["describes"] = []
+        for c in document["attributes"]["components"]:
+            document["describes"].append(
+                {
+                    "__toId": f"{self.NodeLabels.COMPONENT.value}_{c['type']}_{c['name']}",
+                }
             )
 
         self.__remove_attributes_key(document, "component")
@@ -72,7 +81,7 @@ class CycloneDXWriter(SBOMWriter):
         if "metadata" in document and "timestamp" in document["metadata"]:
             document["created_timestamp"] = document["metadata"]["timestamp"]
 
-        return document
+        self.elements.append(document)
 
     def __write_license(self, licenses: list, toId: str):
         """Writes the components of the BOM to the graph
@@ -112,7 +121,7 @@ class CycloneDXWriter(SBOMWriter):
         except Exception as e:
             self.logger.error("Error extracting License nodes", e)
 
-    def __write_components(self, components: list, document: dict):
+    def __write_components(self, components: list):
         """Writes the components of the BOM to the graph
 
         Args:
@@ -120,26 +129,17 @@ class CycloneDXWriter(SBOMWriter):
             document (dict): The document to link the components to
         """
         for c in components:
-            if "bom-ref" in c:
+            if "type" and "name" in c:
                 component = {
                     "attributes": {**c},
                     "__type": self.NodeLabels.COMPONENT.value,
-                    "__component_id": f"{self.NodeLabels.COMPONENT.value}_{c['bom-ref']}",
+                    "__component_id": f"{self.NodeLabels.COMPONENT.value}_{c['type']}_{c['name']}",
                 }
             else:
                 self.logger.error(f"Component {c['name']} does not contain a bom-ref")
                 raise AttributeError(
-                    f"Component {c['name']} does not contain a bom-ref"
+                    f"Component {c['name']} does not contain a bom-ref or a name and type attribute"
                 )
-            document["describes"] = []
-            document["describes"].extend(
-                [
-                    {
-                        "__toId": f"{self.NodeLabels.COMPONENT.value}_{c['bom-ref']}",
-                    }
-                    for c in components
-                ]
-            )
 
             if "licenses" in c:
                 self.__write_license(c["licenses"], component["__component_id"])
@@ -175,8 +175,6 @@ class CycloneDXWriter(SBOMWriter):
 
             self.elements.append(component)
 
-        return document
-
     def __write_dependencies(self, dependencies: list):
         """Writes the dependencies and relationships to the graph
 
@@ -188,13 +186,13 @@ class CycloneDXWriter(SBOMWriter):
                 dependency = {
                     "attributes": {**d},
                     "__type": self.NodeLabels.COMPONENT.value,
-                    "__component_id": f"{self.NodeLabels.COMPONENT.value}_{d['ref']}",
+                    "__component_id": self.__get_component_id_from_bomref(d["ref"]),
                 }
                 dependency["dependsOn"] = []
                 dependency["dependsOn"].extend(
                     [
                         {
-                            "__toId": f"{self.NodeLabels.COMPONENT.value}_{dep}",
+                            "__toId": self.__get_component_id_from_bomref(dep),
                         }
                         for dep in d["dependsOn"]
                     ]
@@ -224,7 +222,7 @@ class CycloneDXWriter(SBOMWriter):
                 vul["affects"].extend(
                     [
                         {
-                            "__toId": f"{self.NodeLabels.COMPONENT.value}_{a['ref']}",
+                            "__toId": self.__get_component_id_from_bomref(a["ref"]),
                         }
                         for a in v["affects"]
                     ]
@@ -232,3 +230,15 @@ class CycloneDXWriter(SBOMWriter):
             if "affects" in vul["attributes"]:
                 del vul["attributes"]["affects"]
             self.elements.append(vul)
+
+    def __get_component_id_from_bomref(self, bomref: str) -> str:
+        return next(
+            (
+                item["__component_id"]
+                for item in self.elements
+                if item["__type"] == self.NodeLabels.COMPONENT.value
+                and "bom-ref" in item["attributes"]
+                and item["attributes"]["bom-ref"] == bomref
+            ),
+            None,
+        )
