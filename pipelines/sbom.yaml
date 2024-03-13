@@ -1,16 +1,16 @@
-# - implementation: sbom:SBOMExtractor
-#   arguments:
-#     paths: data/
+- implementation: sbom:SBOMExtractor
+  arguments:
+    paths: data/CDX/
 
 # - implementation: github_sbom:GithubSBOMExtractor
 #   arguments:
 #     repos: [nodestream-proj/nodestream, bechbd/sbom-test-project]
 
-- implementation: amazon_inspector_sbom:AmazonInspectorSBOMExtractor
-  arguments:
-    bucketName: <>
-    keyPrefix: <>
-    kmsKeyArn: <>
+# - implementation: amazon_inspector_sbom:AmazonInspectorSBOMExtractor
+#   arguments:
+#     bucketName: <>
+#     keyPrefix: <>
+#     kmsKeyArn: <>
 
 - implementation: nodestream.interpreting:Interpreter
   arguments:
@@ -19,9 +19,7 @@
         node_type: Document
         key:
           id: !jmespath __document_id
-        properties:
-          specVersion: !jmespath spec_version
-          serialNumber: !jmespath serialNumber
+        properties: !jmespath attributes
       - type: relationship
         node_type: Component
         relationship_type: DESCRIBES
@@ -63,15 +61,13 @@
         node_type: Component
         key:
           id: !jmespath __component_id
-        properties:
-          name: !jmespath name
+        properties: !jmespath attributes
       - type: relationship
         node_type: Reference
         relationship_type: REFERS_TO
         node_key:
           id: !jmespath references[*].__toId
         find_many: true
-
       - type: relationship
         node_type: Component
         relationship_type: DEPENDS_ON
@@ -83,16 +79,12 @@
         node_type: Reference
         key:
           id: !jmespath __reference_id
-        properties:
-          url: !jmespath url
-          type: !jmespath type
+        properties: !jmespath attributes
 
     - - type: source_node
         node_type: Vulnerability
         key:
           id: !jmespath __vulnerability_id
-        properties:
-          vulnerability_id: !jmespath id
       - type: relationship
         node_type: Component
         relationship_type: AFFECTS

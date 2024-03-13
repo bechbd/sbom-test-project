@@ -1,6 +1,7 @@
 import logging
 from nodestream.pipeline import Extractor
 import os
+from typing import Any
 from sbom_writer import CycloneDXWriter
 import boto3
 import time
@@ -14,6 +15,13 @@ class AmazonInspectorSBOMExtractor(Extractor):
     bearer_token: str = None
 
     def __init__(self, bucketName: str, keyPrefix: str, kmsKeyArn: str) -> None:
+        """The function init, which starts the SBOM export
+
+        Args:
+            bucketName (str): The S3 bucket name for export
+            keyPrefix (str): The S3 bucket key for export
+            kmsKeyArn (str): The KMS key used to encrypt the export
+        """
         self.bucketName = bucketName
         self.keyPrefix = keyPrefix
         self.kmsKeyArn = kmsKeyArn
@@ -29,6 +37,11 @@ class AmazonInspectorSBOMExtractor(Extractor):
             self.logger.error("SBOM export failed")
 
     def start_sbom_export(self) -> str:
+        """Starts an SBOM export
+
+        Returns:
+            str: The report_id for the export
+        """
         self.client = boto3.client("inspector2")
         response = self.client.create_sbom_export(
             reportFormat="CYCLONEDX_1_4",
@@ -41,7 +54,15 @@ class AmazonInspectorSBOMExtractor(Extractor):
 
         return response["reportId"]
 
-    def check_for_export_complete(self, report_id: str) -> object:
+    def check_for_export_complete(self, report_id: str) -> bool:
+        """Checks to see if the specified export is complete
+
+        Args:
+            report_id (str): The export report id to check
+
+        Returns:
+            bool: True if successful, False if not
+        """
         while True:
             time.sleep(30)
             self.logger.info("Checking for SBOM export completion")
@@ -54,7 +75,9 @@ class AmazonInspectorSBOMExtractor(Extractor):
                     return False
 
     def download_s3_dir(self):
-        shutil.rmtree("tmp")
+        """This downloads an entire bucket/key and sub keys from S3 to a local /tmp directory"""
+        if os.path.exists("tmp"):
+            shutil.rmtree("tmp")
 
         s3_client = boto3.client("s3", config=Config(signature_version="s3v4"))
         keys = []
@@ -87,7 +110,12 @@ class AmazonInspectorSBOMExtractor(Extractor):
                 os.makedirs(os.path.dirname(dest_pathname))
             s3_client.download_file(self.bucketName, k, dest_pathname)
 
-    async def extract_records(self):
+    async def extract_records(self) -> Any:
+        """This performs the extraction of the records from the local SBOM copy
+
+        Yields:
+            dict: Yields the output
+        """
         paths = sorted(Path("tmp").rglob("*.json"))
         for path in paths:
             with open(path, "r") as f:

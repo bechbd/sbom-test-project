@@ -43,17 +43,17 @@ class CycloneDXWriter(SBOMWriter):
             document_id = f"{self.NodeLabels.DOCUMENT.value}_{uuid.uuid4()}"
 
         document = {
-            **bom,
+            "attributes": {**bom},
             "__type": self.NodeLabels.DOCUMENT.value,
             "__document_id": document_id,
         }
 
-        if "components" in document:
-            del document["components"]
-        if "dependencies" in document:
-            del document["dependencies"]
-        if "vulnerabilities" in document:
-            del document["vulnerabilities"]
+        if "components" in document["attributes"]:
+            del document["attributes"]["components"]
+        if "dependencies" in document["attributes"]:
+            del document["attributes"]["dependencies"]
+        if "vulnerabilities" in document["attributes"]:
+            del document["attributes"]["vulnerabilities"]
 
         # Do mappings from Cyclone DX to more generic name
         if "metadata" in document and "timestamp" in document["metadata"]:
@@ -71,7 +71,7 @@ class CycloneDXWriter(SBOMWriter):
         for c in components:
             if "bom-ref" in c:
                 component = {
-                    **c,
+                    "attributes": {**c},
                     "__type": self.NodeLabels.COMPONENT.value,
                     "__component_id": f"{self.NodeLabels.COMPONENT.value}_{c['bom-ref']}",
                 }
@@ -93,7 +93,7 @@ class CycloneDXWriter(SBOMWriter):
                 self.elements.extend(
                     [
                         {
-                            **c,
+                            "attributes": {**c},
                             "__type": self.NodeLabels.REFERENCE.value,
                             "__reference_id": f"{self.NodeLabels.REFERENCE.value}_{r['url']}",
                         }
@@ -110,6 +110,8 @@ class CycloneDXWriter(SBOMWriter):
                     ]
                 )
 
+            if "dependsOn" in component["attributes"]:
+                del component["attributes"]["dependsOn"]
             self.elements.append(component)
 
         return document
@@ -123,7 +125,7 @@ class CycloneDXWriter(SBOMWriter):
         for d in dependencies:
             if "dependsOn" in d:
                 dependency = {
-                    **d,
+                    "attributes": {**d},
                     "__type": self.NodeLabels.COMPONENT.value,
                     "__component_id": f"{self.NodeLabels.COMPONENT.value}_{d['ref']}",
                 }
@@ -137,6 +139,8 @@ class CycloneDXWriter(SBOMWriter):
                     ]
                 )
 
+                if "dependsOn" in dependency["attributes"]:
+                    del dependency["attributes"]["dependsOn"]
                 self.elements.append(dependency)
 
     def __write_vulnerabilities(self, vulnerabilities: list):
@@ -147,7 +151,7 @@ class CycloneDXWriter(SBOMWriter):
         """
         for v in vulnerabilities:
             vul = {
-                **v,
+                "attributes": {**v},
                 "__type": self.NodeLabels.VULNERABILITY.value,
                 "__vulnerability_id": f"{self.NodeLabels.VULNERABILITY.value}_{v['id']}",
             }
@@ -164,4 +168,6 @@ class CycloneDXWriter(SBOMWriter):
                         for a in v["affects"]
                     ]
                 )
+            if "affects" in vul["attributes"]:
+                del vul["attributes"]["affects"]
             self.elements.append(vul)
