@@ -31,10 +31,6 @@ class CycloneDXWriter(SBOMWriter):
             self.logger.error(e)
             raise e
 
-    def __remove_attributes_key(self, document: dict, key: str):
-        if key in document["attributes"]:
-            del document["attributes"][key]
-
     def __write_bom(self, bom):
         """Writes the BOM metadata
 
@@ -84,11 +80,11 @@ class CycloneDXWriter(SBOMWriter):
         self.elements.append(document)
 
     def __write_license(self, licenses: list, toId: str):
-        """Writes the components of the BOM to the graph
+        """Writes the licenses of the BOM to the graph
 
         Args:
-            components (list): The components to write
-            document (dict): The document to link the components to
+            licenses (list): The licenses to write
+            toId (dict): The entity to link the licenses to
         """
         try:
             for lic in licenses:
@@ -232,6 +228,14 @@ class CycloneDXWriter(SBOMWriter):
             self.elements.append(vul)
 
     def __get_component_id_from_bomref(self, bomref: str) -> str:
+        """Gets the correct component id for the specified bomref
+
+        Args:
+            bomref (str): The bom-ref value to find the component of
+
+        Returns:
+            str: The component id, or None
+        """
         return next(
             (
                 item["__component_id"]
@@ -242,3 +246,13 @@ class CycloneDXWriter(SBOMWriter):
             ),
             None,
         )
+
+    def __remove_attributes_key(self, entity: dict, key: str):
+        """Removes the specified key from the "attributes" key of the entity
+
+        Args:
+            entity (dict): The entity to remove the key from
+            key (str): The key to remove from the "attributes" key of the entity
+        """
+        if key in entity["attributes"]:
+            del entity["attributes"][key]

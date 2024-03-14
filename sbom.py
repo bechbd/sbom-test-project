@@ -54,8 +54,6 @@ class SBOMExtractor(Extractor):
                         self.logger.debug(e)
                         if "attributes" in e:
                             e["attributes"] = self.__clean_dict(e["attributes"])
-                        # if e["__type"] == "Document":
-                        #     print(e)
                         yield e
                     else:
                         print(e)
